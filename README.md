@@ -60,7 +60,7 @@ Each model will be tested using:
 
 ## How to Run
 1. Clone this repo in GitHub Codespaces.  
-2. Place the dataset inside `data/training-b/`.  
+2. Dataset is placed inside `data/training-a/`, `data/training-b/`, `data/training-c/`, `data/training-d/` and `data/training-e/`.  
 3. Open `baseline_demo.ipynb`.  
 4. Run cells step by step to:
    - Preprocess data  
