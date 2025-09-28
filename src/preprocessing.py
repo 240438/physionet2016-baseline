@@ -13,6 +13,7 @@ def load_wav(file_path, target_fs=2000):
     audio_resampled = signal.resample_poly(audio, target_fs, fs)
     return target_fs, audio_resampled
 
+
 def extract_features(audio, fs=2000):
     """
     Extract baseline features from a heart sound recording.
@@ -24,40 +25,53 @@ def extract_features(audio, fs=2000):
     freqs, psd = signal.welch(audio, fs=fs)
     features["spectral_centroid"] = np.sum(freqs * psd) / np.sum(psd)
     mean_freq = features["spectral_centroid"]
-    features["spectral_bandwidth"] = np.sqrt(np.sum(((freqs - mean_freq) ** 2) * psd) / np.sum(psd))
+    features["spectral_bandwidth"] = np.sqrt(
+        np.sum(((freqs - mean_freq) ** 2) * psd) / np.sum(psd)
+    )
     return features
 
-def get_label_from_header(header_file):
+
+def read_label_from_header(header_file):
     """
-    Parse .hea file to extract label (Normal=0, Abnormal=1)
+    Parse .hea file to extract Normal/Abnormal label
     """
     with open(header_file, "r") as f:
-        lines = f.readlines()
-    label = -1
-    for line in lines:
-        if "normal" in line.lower():
-            label = 0
-            break
-        elif "abnormal" in line.lower():
-            label = 1
-            break
-    return label
+        content = f.read().lower()
+    if "# normal" in content:
+        return 0
+    elif "# abnormal" in content:
+        return 1
+    else:
+        return -1
 
-def process_dataset(data_dir="data/training-b/"):
-    print("=== Using UPDATED process_dataset ===")  # Debug print
+
+def process_dataset(data_dirs):
+    """
+    Process all wav files in one or multiple directories
+    Returns: Feature matrix X, Label vector y
+    """
+    if isinstance(data_dirs, str):
+        data_dirs = [data_dirs]
+
     X, y = [], []
-    for fname in os.listdir(data_dir):
-        if fname.endswith(".wav"):
-            file_path = os.path.join(data_dir, fname)
-            fs, audio = load_wav(file_path)
-            feats = extract_features(audio, fs)
-            X.append(list(feats.values()))
+    print("=== Using FINAL process_dataset (with .hea labels) ===")
 
-            # Get label from matching .hea file
-            hea_file = os.path.splitext(file_path)[0] + ".hea"
-            if os.path.exists(hea_file):
-                label = get_label_from_header(hea_file)
-            else:
-                label = -1
-            y.append(label)
+    for data_dir in data_dirs:
+        for fname in os.listdir(data_dir):
+            if fname.endswith(".wav"):
+                wav_path = os.path.join(data_dir, fname)
+                hea_path = wav_path.replace(".wav", ".hea")
+
+                # Extract features
+                fs, audio = load_wav(wav_path)
+                feats = extract_features(audio, fs)
+                X.append(list(feats.values()))
+
+                # Extract label
+                if os.path.exists(hea_path):
+                    label = read_label_from_header(hea_path)
+                else:
+                    label = -1
+                y.append(label)
+
     return np.array(X), np.array(y)
